@@ -1,24 +1,21 @@
 import unittest
-from greedypermutation import Point, Cell, NeighborGraph
-from metricspaces import MetricSpace
+from greedypermutation import Point, Cluster, ClusterGraph
 
 class L_inf(tuple):
     def dist(self, other):
         return max(abs(a-b) for a,b in zip(self, other))
 
-class TestCell(unittest.TestCase):
+class TestCluster(unittest.TestCase):
     def testinit_with_center(self):
-        M = MetricSpace([Point([2*i,2*i]) for i in range(100)])
-        MetricCell = Cell(MetricSpace())
-        C = MetricCell(Point([99,99]))
-        for p in M:
+        P = [Point([2*i,2*i]) for i in range(100)]
+        C = Cluster(Point([99,99]))
+        for p in P:
             C.addpoint(p)
         self.assertEqual(len(C), 101)
 
     def testaddpoint(self):
         a,b,c = Point([1,2]), Point([2,3]), Point([3,4])
-        MetricCell = Cell(MetricSpace())
-        C = MetricCell(a)
+        C = Cluster(a)
         self.assertEqual(len(C), 1)
         C.addpoint(b)
         self.assertEqual(len(C), 2)
@@ -28,8 +25,7 @@ class TestCell(unittest.TestCase):
 
     def testaddpoint_duplicatepoint(self):
         a,b = Point([1,2]), Point([2,3])
-        MetricCell = Cell(MetricSpace())       
-        C = MetricCell(a)
+        C = Cluster(a)
         self.assertEqual(len(C), 1)
         C.addpoint(b)
         self.assertEqual(len(C), 2)
@@ -42,23 +38,20 @@ class TestCell(unittest.TestCase):
         self.assertEqual(len(C), 2)
         self.assertEqual(C.points, {a,b})
 
-    def testupdateradius_empty_cell(self):
-        MetricCell = Cell(MetricSpace())
-        C = MetricCell(Point([1,2,3]))
+    def testupdateradius_empty_cluster(self):
+        C = Cluster(Point([1,2,3]))
         C.updateradius()
         self.assertEqual(C.radius, 0)
 
     def testdist(self):
-        MetricCell = Cell(MetricSpace())
-        A = MetricCell(Point([2, 3]))
+        A = Cluster(Point([2, 3]))
         self.assertEqual(A.dist(Point([7,3])), 5)
         self.assertEqual(A.dist(A.center), 0)
         self.assertEqual(A.dist(Point([7,15])), 13)
 
     def testpop(self):
         a,b,c,d = Point([0,0]), Point([100, 0]), Point([0,50]), Point([25,25])
-        MetricCell = Cell(MetricSpace())
-        C = MetricCell(a)
+        C = Cluster(a)
         C.addpoint(b)
         C.addpoint(c)
         C.addpoint(d)
@@ -72,26 +65,25 @@ class TestCell(unittest.TestCase):
     #     S = set(range(100)) | set(range(100, 200, 20))
     #     P = [Point([c]) for c in S]
     #     M = MetricSpace(P)
-    #     C = [Cell(P[0])]
+    #     C = [Cluster(P[0])]
     #     for p in P:
     #         C[0].addpoint(p)
     #     for i in range(len(S) - 2)
 
-class TestNeighborGraph(unittest.TestCase):
+class TestClusterGraph(unittest.TestCase):
     def testbasicusage(self):
-        G = NeighborGraph(MetricSpace([Point([i,i]) for i in range(100)]))
+        G = ClusterGraph([Point([i,i]) for i in range(100)])
         # root = next(G.vertices())
-        # G.addcell(Point([100,99]), root)
+        # G.addcluster(Point([100,99]), root)
         # self.assertEqual(len(G), 2)
         # for v in G.vertices():
         #     self.assertEqual(len(set(G.nbrs(v))), 1)
 
     def testrebalance(self):
         a, b = Point([-1]), Point([200])
-        G = NeighborGraph(MetricSpace([a,b]))
-        MetricCell = Cell(MetricSpace())
-        A = MetricCell(a)
-        B = MetricCell(b)
+        G = ClusterGraph([a,b])
+        A = Cluster(a)
+        B = Cluster(b)
         for i in range(200):
             B.addpoint(Point([i]))
         self.assertEqual(len(A), 1)
@@ -103,8 +95,8 @@ class TestNeighborGraph(unittest.TestCase):
 
     def testneighborsofneighborscondition(self):
         """ This somewhat long test was written to expose a bug where
-        neighbors of the neighbor graph were not properly discovered.
-        The construction highlights the need for the neighbor graph to be
+        neighbors of the cluster graph were not properly discovered.
+        The construction highlights the need for the cluster graph to be
         undirected.
         """
         a =  L_inf([0, 2, 21, 11, 22, 19])
@@ -114,16 +106,16 @@ class TestNeighborGraph(unittest.TestCase):
         c = L_inf([22, 20 , 21, 11, 0, 3])
         cc = L_inf([ 19, 17, 18, 8, 3, 0])
         P = [a,aa,b,bb,c,cc]
-        G = NeighborGraph(MetricSpace(P))
+        G = ClusterGraph(P)
         self.assertEqual(len(G), 1)
         p = G.heap.findmax()
         self.assertEqual(p.center, a)
         self.assertEqual(p.pop(), c)
-        G.addcell(c, p)
+        G.addcluster(c, p)
         self.assertEqual(len(G), 2)
         p = G.heap.findmax()
         self.assertEqual(p.pop(), b)
-        G.addcell(b, p)
+        G.addcluster(b, p)
         V = {v.center : v for v in G.vertices()}
         self.assertEqual(set(V), {a,b,c})
         self.assertTrue(V[b] in G.nbrs(V[a]))
@@ -134,7 +126,7 @@ class TestNeighborGraph(unittest.TestCase):
         # Before adding aa.
         self.assertTrue(bb in V[b])
         self.assertEqual(V[a].pop(), aa)
-        G.addcell(aa, V[a])
+        G.addcluster(aa, V[a])
         V = {v.center:v for v in G.vertices()}
         # After adding aa.
         self.assertTrue(cc in V[c])

@@ -14,7 +14,7 @@ Welcome to greedypermutations's documentation!
    clarkson
    knnsampling
    maxheap
-   neighborgraph
+   clustergraph
    greedytree
    onehopgreedy
    point

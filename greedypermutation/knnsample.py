@@ -1,9 +1,9 @@
 from collections import defaultdict
-from greedypermutation.neighborgraph import NeighborGraph
+from greedypermutation.clustergraph import ClusterGraph
 
 def knnsample(M, k, seed = None):
     # If no seed is provided, use the first point.
-    G = NeighborGraph(M, seed, 2, 1)
+    G = ClusterGraph(M, seed, 2, 1)
     markednbrs = defaultdict(set)
     H = G.heap
     root = H.findmax()
@@ -12,11 +12,11 @@ def knnsample(M, k, seed = None):
     yield root.center
 
     for i in range(1, len(M)):
-        cell = H.findmax()
-        point = cell.pop()
-        radius = 2 * point.dist(cell.center)
+        cluster = H.findmax()
+        point = cluster.pop()
+        radius = 2 * point.dist(cluster.center)
 
-        nearbypts = {q for nbr in G.nbrs(cell)
+        nearbypts = {q for nbr in G.nbrs(cluster)
                        for q in nbr
                        if q.dist(point) <= radius
                     }
@@ -26,17 +26,17 @@ def knnsample(M, k, seed = None):
                           }
 
         # If there are fewer than k nearby points, we mark it.
-        # If there are at least k, we yield it and add the cell.
+        # If there are at least k, we yield it and add the cluster.
         if len(nearbypts) + len(nearbymarkedpts) < k:
             for p in nearbypts:
                 # This is overkill.  Should only add this if point is less than
                 # twice the distance to RNN(p)
                 markednbrs[p].add(point)
-            # In greedy, `addcell` updates the heap after moving points.
+            # In greedy, `addcluster` updates the heap after moving points.
             # Here, we have to do it manually.
-            H.changepriority(cell)
+            H.changepriority(cluster)
         else:
             if point in markednbrs:
                 del markednbrs[point]
-            newcell = G.addcell(point, cell)
+            newcluster = G.addcluster(point, cluster)
             yield point
